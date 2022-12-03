@@ -10,6 +10,22 @@ const getKey = () => {
   });
 };
 
+const sendMessage = (content) => {
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    const activeTab = tabs[0].id;
+
+    chrome.tabs.sendMessage(
+      activeTab,
+      { message: 'inject', content },
+      (response) => {
+        if (response.status === 'failed') {
+          console.log('injection failed.');
+        }
+      }
+    );
+  });
+};
+
 const generate = async (prompt) => {
   // Get your API key from storage
   const key = await getKey();
@@ -37,6 +53,8 @@ const generate = async (prompt) => {
 
 const generateCompletionAction = async (info) => {
   try {
+    sendMessage('generating...');
+
     const { selectionText } = info;
     const basePromptPrefix = `
     Write me some ad copy for a Google Text Ad for the following product.
@@ -44,11 +62,26 @@ const generateCompletionAction = async (info) => {
     Product: 
     `;
     const baseCompletion = await generate(`${basePromptPrefix}${selectionText}`);
+    console.log("First output: " + baseCompletion.text)
 
-    // Let's see what we get!
-    console.log(baseCompletion.text)
+    const secondPrompt = `
+    Take the product description and old ad copy of the product below and generate new ad copy. Make it compelling so that when someone reads the ad copy they really wants to buy the product. Sell the product to the reader.
+    
+    Product description: ${selectionText}
+    
+    Old ad copy: ${baseCompletion.text}
+    
+    New ad copy:
+    `;
+
+    const secondPromptCompletion = await generate(secondPrompt);
+    console.log("Second output: " + secondPromptCompletion.text)
+
+    sendMessage(secondPromptCompletion.text);
   } catch (error) {
     console.log(error);
+
+    sendMessage(error.toString());
   }
 };
 
