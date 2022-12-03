@@ -3,7 +3,9 @@ const getKey = () => {
   return new Promise((resolve, reject) => {
     chrome.storage.local.get(['openai-key'], (result) => {
       if (result['openai-key']) {
+        // console.log(result['openai-key']); somehow this is doing nothing...
         const decodedKey = atob(result['openai-key']);
+        // console.log(decodedKey);
         resolve(decodedKey);
       }
     });
@@ -46,7 +48,7 @@ const generate = async (prompt) => {
     }),
   });
 	
-  // Select the top choice and send back
+  // Select the top choice and send back -> What is "top choice"?
   const completion = await completionResponse.json();
   return completion.choices.pop();
 }
@@ -54,6 +56,7 @@ const generate = async (prompt) => {
 const generateCompletionAction = async (info) => {
   try {
     sendMessage('generating...');
+    console.log("Did you enter your API key in the extension?");
 
     const { selectionText } = info;
     const basePromptPrefix = `
@@ -63,6 +66,8 @@ const generateCompletionAction = async (info) => {
     `;
     const baseCompletion = await generate(`${basePromptPrefix}${selectionText}`);
     console.log("First output: " + baseCompletion.text)
+
+    sendMessage(baseCompletion.text);
 
     const secondPrompt = `
     Take the product description and old ad copy of the product below and generate new ad copy. Make it compelling so that when someone reads the ad copy they really wants to buy the product. Sell the product to the reader.
